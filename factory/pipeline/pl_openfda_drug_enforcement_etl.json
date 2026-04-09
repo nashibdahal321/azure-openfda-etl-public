@@ -154,7 +154,7 @@
 		"parameters": {
 			"p_limit": {
 				"type": "string",
-				"defaultValue": "100"
+				"defaultValue": "1000"
 			}
 		},
 		"annotations": [],
