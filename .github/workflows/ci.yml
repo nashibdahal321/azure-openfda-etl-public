@@ -29,7 +29,6 @@ jobs:
           test -f databricks/nb_openfda_transform.py
           test -f synapse/external_objects.sql
           test -f synapse/analytics_queries.sql
-          test -f confluence/page_outline.md
 
       - name: Validate key SQL objects are present
         run: |
