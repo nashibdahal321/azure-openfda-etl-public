@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate-repo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate Python syntax
+        run: python -m py_compile databricks/nb_openfda_transform.py
+
+      - name: Validate expected project files exist
+        run: |
+          set -e
+          test -f README.md
+          test -f databricks/nb_openfda_transform.py
+          test -f synapse/external_objects.sql
+          test -f synapse/analytics_queries.sql
+          test -f confluence/page_outline.md
+
+      - name: Validate key SQL objects are present
+        run: |
+          grep -q "CREATE DATABASE SCOPED CREDENTIAL" synapse/external_objects.sql
+          grep -q "CREATE OR ALTER VIEW dbo.vw_openfda_recall_curated" synapse/external_objects.sql
+          grep -q "CREATE OR ALTER VIEW dbo.vw_openfda_recall_invalid" synapse/external_objects.sql
