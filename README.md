@@ -1,10 +1,10 @@
 # Azure OpenFDA ETL
 
-This repository contains an Azure-based ETL pipeline for OpenFDA drug enforcement data.
+This repository contains a focused Azure ETL implementation for OpenFDA drug enforcement data.
 
 ## Overview
 
-The solution ingests recall data from the OpenFDA API with Azure Data Factory, lands the raw payload in Azure Data Lake Storage Gen2, transforms the dataset with Databricks PySpark, and exposes curated Parquet data through Synapse serverless SQL.
+The pipeline ingests recall data from the OpenFDA API with Azure Data Factory, lands the raw payload in Azure Data Lake Storage Gen2, transforms the dataset with Databricks PySpark, and exposes curated Parquet data through Synapse serverless SQL.
 
 Source API:
 
@@ -29,8 +29,6 @@ azure-openfda-etl-public/
     analytics_queries.sql
   factory/
     .gitkeep
-  confluence/
-    page_outline.md
 ```
 
 ## Databricks Notebook
@@ -58,6 +56,8 @@ The notebook reads an ADLS credential from a Databricks secret scope and writes:
 - curated Parquet to `curated/drug_enforcement/`
 - invalid rows to `curated/drug_enforcement_invalid/`
 
+The notebook uses `_metadata.file_path` for compatibility with Unity Catalog-enabled compute.
+
 ## Synapse SQL
 
 The Synapse layer is defined by:
@@ -71,22 +71,22 @@ The Synapse layer is defined by:
 
 ## ADF Artifacts
 
-The `factory/` folder is reserved for Azure Data Factory Git integration.
+The `factory/` folder is the location used for Azure Data Factory Git-integrated artifacts.
 
-To connect the live ADF artifacts to this repository:
+When ADF source control is connected to this repository, the `factory/` folder stores the JSON artifacts for:
 
-1. Open ADF Studio.
-2. Go to `Manage -> Source control`.
-3. Connect the factory to this GitHub repository.
-4. Use:
-   - collaboration branch: `main`
-   - publish branch: `adf_publish`
-   - root folder: `factory`
-5. Select `Import existing resources to repository`.
+- pipelines
+- datasets
+- linked services
+- triggers
 
-After that, ADF will populate `factory/` with the actual JSON artifacts for pipelines, datasets, linked services, and triggers.
+Recommended ADF Git settings:
 
-The ADF notebook activity should pass these base parameters to the Databricks notebook:
+- collaboration branch: `main`
+- publish branch: `adf_publish`
+- root folder: `factory`
+
+The Databricks notebook activity passes these base parameters:
 
 - `storage_account_name`
 - `input_path`
@@ -96,28 +96,9 @@ The ADF notebook activity should pass these base parameters to the Databricks no
 
 This keeps the notebook code versioned in GitHub while allowing environment-specific values to stay outside the notebook source.
 
-## Notebook Versioning Workflow
-
-The recommended pattern is:
-
-1. Keep the Databricks notebook under version control in GitHub as `databricks/nb_openfda_transform.py`
-2. Import or sync that notebook source into the Databricks workspace
-3. Point the ADF notebook activity to the live workspace notebook path
-4. When notebook logic changes, update the workspace notebook and export the latest version back into GitHub before opening a pull request
-
-The detailed sync flow is documented in:
-
-- [notebook_versioning.md](/Users/Nawaraj/projects/ETL_Pipeline/azure-openfda-etl-public/databricks/notebook_versioning.md)
-
 ## GitHub Workflow
 
 This repo includes:
 
 - a pull request template
-- a lightweight GitHub Actions workflow that validates Python syntax and key SQL object definitions
-
-## Confluence
-
-The Confluence page structure for this project is outlined in:
-
-- [page_outline.md](/Users/Nawaraj/projects/ETL_Pipeline/azure-openfda-etl-public/confluence/page_outline.md)
+- a lightweight GitHub Actions workflow that validates notebook Python syntax and key Synapse SQL object definitions
