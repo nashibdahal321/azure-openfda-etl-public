@@ -1,0 +1,9 @@
+{
+	"name": "adf-openfda-etl-dev",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "81ad4883-4f5c-4a85-b290-f61b42b73e69",
+		"tenantId": "94630c23-bb9c-4e45-ba6a-b8fbff67e2b3"
+	}
+}

@@ -1,0 +1,12 @@
+{
+	"name": "ls_adls_openfda",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"description": "Writes raw files into ADLS",
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "https://stopenfdaetl1926.dfs.core.windows.net/"
+		}
+	}
+}

@@ -1,0 +1,164 @@
+{
+	"name": "pl_openfda_drug_enforcement_etl",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy_OpenFDA_To_ADLS_Raw",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "BinarySource",
+						"storeSettings": {
+							"type": "HttpReadSettings",
+							"requestMethod": "GET"
+						},
+						"formatSettings": {
+							"type": "BinaryReadSettings"
+						}
+					},
+					"sink": {
+						"type": "BinarySink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings",
+							"copyBehavior": "PreserveHierarchy"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_http_openfda_binary_source",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_relative_url": "@concat('drug/enforcement.json?limit=', pipeline().parameters.p_limit)"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_adls_openfda_raw_binary_sink",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_directory": "@concat('raw/drug_enforcement/ingest_date=', formatDateTime(utcNow(),'yyyy-MM-dd'))",
+							"p_file_name": "@concat('openfda_enforcement_', pipeline().RunId, '.json')"
+						}
+					}
+				]
+			},
+			{
+				"name": "Get_Raw_File_Metadata",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "Copy_OpenFDA_To_ADLS_Raw",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_adls_openfda_raw_binary_sink",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_directory": "@concat('raw/drug_enforcement/ingest_date=', formatDateTime(utcNow(),'yyyy-MM-dd'))",
+							"p_file_name": "@concat('openfda_enforcement_', pipeline().RunId, '.json')"
+						}
+					},
+					"fieldList": [
+						"exists",
+						"size"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "BinaryReadSettings"
+					}
+				}
+			},
+			{
+				"name": "If_Raw_File_Is_Valid",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get_Raw_File_Metadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@and(\n  activity('Get_Raw_File_Metadata').output.exists,\n  greater(activity('Get_Raw_File_Metadata').output.size, 0)\n)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Run_Databricks_OpenFDA_Transform",
+							"type": "DatabricksNotebook",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/nashibdahal@gmail.com/Shared/openfda-etl/nb_openfda_transform",
+								"baseParameters": {
+									"input_path": {
+										"value": "@concat('abfss://openfda@stopenfdaetl1926.dfs.core.windows.net/raw/drug_enforcement/ingest_date=', formatDateTime(utcNow(),'yyyy-MM-dd'), '/openfda_enforcement_', pipeline().RunId, '.json')",
+										"type": "Expression"
+									},
+									"output_path": "abfss://openfda@stopenfdaetl1926.dfs.core.windows.net/curated/drug_enforcement/",
+									"invalid_path": "abfss://openfda@stopenfdaetl1926.dfs.core.windows.net/curated/drug_enforcement_invalid/",
+									"ingest_date": {
+										"value": "@formatDateTime(utcNow(),'yyyy-MM-dd')",
+										"type": "Expression"
+									},
+									"storage_account_name": "stopenfdaetl1926"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks_openfda",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"p_limit": {
+				"type": "string",
+				"defaultValue": "100"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-04-09T04:34:23Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
